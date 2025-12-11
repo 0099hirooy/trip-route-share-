@@ -540,7 +540,7 @@
       };
     }
 
-    // どこでも再現できる長い共有リンク（URL安全なBase64でエンコード）
+    // どこでも再現できる長い共有リンク（Base64をやめてJSONをそのままURLエンコード）
     function generateShareLink() {
       const data = getCurrentPlanData();
       if (!data.destinations.length) {
@@ -549,13 +549,10 @@
       }
 
       const json = JSON.stringify(data);
-      // UTF-8 → Base64
-      const b64 = btoa(unescape(encodeURIComponent(json)));
-      // URL セーフにする（+ や = もエンコード）
-      const safe = encodeURIComponent(b64);
+      const packed = encodeURIComponent(json); // URLセーフな文字列に
 
       const base = window.location.href.split('?')[0].split('#')[0];
-      const url = base + '?plan=' + safe;
+      const url = base + '?plan=' + packed;
 
       const container = document.getElementById('shareLink');
       container.textContent = url + '（コピーしました）';
@@ -610,14 +607,13 @@
       let loadedFromShare = false;
       const titleInput = document.getElementById('tripTitleInput');
 
-      // ?plan=... から読み込み
+      // ?plan=... から読み込み（JSONをそのままURLエンコードしたもの）
       const params = new URLSearchParams(window.location.search);
       const dataParam = params.get('plan');
 
       if (dataParam) {
         try {
-          const b64 = decodeURIComponent(dataParam);
-          const jsonStr = decodeURIComponent(escape(atob(b64)));
+          const jsonStr = decodeURIComponent(dataParam);
           const json = JSON.parse(jsonStr);
 
           if (Array.isArray(json)) {
