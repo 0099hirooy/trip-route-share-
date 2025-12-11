@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>旅ルート共有ミニアプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+      background: #f4f4f5;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+    label {
+      font-size: 0.85rem;
+      display: block;
+      margin-top: 8px;
+    }
+    input, textarea, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #d4d4d8;
+      margin-top: 4px;
+      font-size: 0.9rem;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #e4e4e7;
+      color: #111827;
+    }
+    .dest-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .dest-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #e4e4e7;
+    }
+    .dest-main {
+      flex: 1;
+    }
+    .dest-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .dest-url {
+      font-size: 0.8rem;
+      color: #2563eb;
+      word-break: break-all;
+    }
+    .dest-meta {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .dest-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .small-btn {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+    .share-link {
+      font-size: 0.8rem;
+      word-break: break-all;
+      margin-top: 8px;
+    }
+    .share-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .helper-text {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>旅ルート共有ミニアプリ</h1>
+  <p style="font-size:0.85rem;color:#4b5563;">
+    行き先のURLを登録して、順番・移動手段・所要時間をまとめて、仲間と共有できます。<br>
+    まずはブラウザだけで動くシンプル版です。
+  </p>
+
+  <div class="card">
+    <h2 style="font-size:1rem;margin-top:0;">旅の基本情報</h2>
+    <label>
+      旅のタイトル（例：四国一周サーフトリップ、徳島FW1日目）
+      <input id="tripTitleInput" placeholder="旅のタイトルを入力" />
+    </label>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1rem;margin-top:0;">① 行き先を追加</h2>
+    <label>
+      行き先の名前（例：1日目ホテル、ひろめ市場など）
+      <input id="titleInput" placeholder="スポット名を入力" autocomplete="off" />
+    </label>
+    <label>
+      行き先URL（公式サイトやGoogleマップのURL）
+      <input id="urlInput" placeholder="https://..." autocomplete="off" />
+      <div class="helper-text">「maps.google.com/...」など https から始まっていなくても自動で補完されます。</div>
+    </label>
+    <label>
+      到着予定時間（任意）
+      <div style="display:flex; gap:8px;">
+        <select id="etaHour" style="flex:1;">
+          <option value="">-- 時 --</option>
+        </select>
+        <select id="etaMinute" style="flex:1;">
+          <option value="">-- 分 --</option>
+        </select>
+      </div>
+    </label>
+    <label>
+      前の地点からの移動手段
+      <select id="transportInput">
+        <option value="">（最初の地点 or 未設定）</option>
+        <option value="car">🚗 車</option>
+        <option value="train">🚃 電車</option>
+        <option value="bus">🚌 バス</option>
+        <option value="walk">🚶 徒歩</option>
+        <option value="bike">🚲 自転車</option>
+        <option value="plane">✈️ 飛行機</option>
+      </select>
+    </label>
+    <label>
+      前の地点からの移動時間（分）  
+      <input id="travelMinutesInput" type="number" min="0" placeholder="例：25（Googleマップの結果をそのまま入力）" />
+    </label>
+    <label>
+      メモ（任意）
+      <textarea id="noteInput" rows="2" placeholder="集合場所、注意点など" autocomplete="off"></textarea>
+    </label>
+    <button class="btn-primary" onclick="addDestination()">リストに追加</button>
+    <p class="helper-text">
+      ※ 正確な移動時間は Googleマップで確認して、「移動時間（分）」に入力すると便利です。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1rem;margin-top:0;">② 行き先リスト＆順番</h2>
+    <ul id="destList" class="dest-list"></ul>
+    <div id="totalTime" style="font-size:0.85rem;color:#4b5563;margin-top:8px;"></div>
+    <p style="font-size:0.8rem;color:#6b7280;">
+      ※ 並び順がそのままルート順（1 → 2 → 3…）になります。<br>
+      「↑」「↓」ボタンで順番を変えられます。
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1rem;margin-top:0;">③ 仲間と共有</h2>
+    <button class="btn-secondary" onclick="generateShareLink()">長い共有リンクを作成（どの端末でも再現可）</button>
+    <div class="share-label">長い共有リンク：</div>
+    <div id="shareLink" class="share-link"></div>
+
+    <button class="btn-secondary" onclick="generateShortLocalLink()">短いリンクを作成（この端末のブラウザ限定）</button>
+    <div class="share-label">短縮リンク（同じブラウザ限定）：</div>
+    <div id="shortLink" class="share-link"></div>
+
+    <p style="font-size:0.8rem;color:#6b7280;">
+      ・長いリンク：URLに旅データ全部を埋め込むので、どこに送っても再現できます（かなり長くなります）。<br>
+      ・短縮リンク：このブラウザの中に旅データを保存し、「#p=XXXX」形式の短いURLで呼び出します。<br>
+      　→ そのため、別のPCやスマホでは再現できません。<br>
+      　→ 行き先を編集すると古いリンクは無効になるので、編集後はもう一度リンクを作り直してください。
+    </p>
+  </div>
+
+  <script>
+    let destinations = [];
+    let tripTitle = '';
+
+    // サンプルデータ
+    const sampleTripTitle = '1日東京観光（サンプル）';
+    const sampleDestinations = [
+      {
+        id: 'sample-1',
+        title: '東京駅（集合場所）',
+        url: 'https://www.google.com/maps/place/東京駅/',
+        eta: '09:00',
+        transport: '',
+        travelMinutes: null,
+        note: '改札前など、わかりやすい集合場所をメモしておけます。',
+        isSample: true
+      },
+      {
+        id: 'sample-2',
+        title: '浅草・浅草寺',
+        url: 'https://www.google.com/maps/place/浅草寺/',
+        eta: '11:00',
+        transport: 'train',
+        travelMinutes: 30,
+        note: '仲見世通りで食べ歩きなど。',
+        isSample: true
+      },
+      {
+        id: 'sample-3',
+        title: '東京スカイツリー',
+        url: 'https://www.google.com/maps/place/東京スカイツリー/',
+        eta: '15:00',
+        transport: 'train',
+        travelMinutes: 20,
+        note: '展望台の時間やチケット情報をメモしておけます。',
+        isSample: true
+      }
+    ];
+
+    const transportIcons = {
+      car: '🚗 車',
+      train: '🚃 電車',
+      bus: '🚌 バス',
+      walk: '🚶 徒歩',
+      bike: '🚲 自転車',
+      plane: '✈️ 飛行機'
+    };
+
+    // URL補正（http/httpsなしなら https:// を補う）
+    function normalizeUrl(rawUrl) {
+      let url = rawUrl.trim();
+      if (!url) return '';
+      if (/^https?:\/\//i.test(url)) {
+        return url;
+      }
+      return 'https://' + url;
+    }
+
+    // 到着予定時間の選択肢を構築（時間・分）
+    function buildEtaSelects() {
+      const hourSel = document.getElementById('etaHour');
+      const minSel = document.getElementById('etaMinute');
+      if (!hourSel || !minSel) return;
+
+      // 初期状態クリア（念のため）
+      // （先頭の "-- 時 --" / "-- 分 --" は残す）
+      while (hourSel.options.length > 1) {
+        hourSel.remove(1);
+      }
+      while (minSel.options.length > 1) {
+        minSel.remove(1);
+      }
+
+      // 時：0〜23
+      for (let h = 0; h < 24; h++) {
+        const opt = document.createElement('option');
+        opt.value = String(h).padStart(2, '0');
+        opt.textContent = h + ' 時';
+        hourSel.appendChild(opt);
+      }
+
+      // 分：0〜59（1分刻み）
+      for (let m = 0; m < 60; m++) {
+        const opt = document.createElement('option');
+        opt.value = String(m).padStart(2, '0');
+        opt.textContent = m + ' 分';
+        minSel.appendChild(opt);
+      }
+    }
+
+    function syncTripTitle() {
+      const input = document.getElementById('tripTitleInput');
+      tripTitle = input.value.trim();
+      clearShareLinksIfAny();
+    }
+
+    function clearShareLinksIfAny() {
+      const share = document.getElementById('shareLink');
+      const shortL = document.getElementById('shortLink');
+      if (share && share.textContent) share.textContent = '';
+      if (shortL && shortL.textContent) shortL.textContent = '';
+    }
+
+    function clearSamplesIfNeeded() {
+      const hasReal = destinations.some(function(d) { return !d.isSample; });
+      if (!hasReal) {
+        destinations = [];
+        if (tripTitle === sampleTripTitle) {
+          tripTitle = '';
+          const titleInput = document.getElementById('tripTitleInput');
+          if (titleInput) titleInput.value = '';
+        }
+      }
+    }
+
+    function addDestination() {
+      syncTripTitle();
+      clearSamplesIfNeeded();
+
+      const titleEl = document.getElementById('titleInput');
+      const urlEl = document.getElementById('urlInput');
+      const hourEl = document.getElementById('etaHour');
+      const minuteEl = document.getElementById('etaMinute');
+      const transportEl = document.getElementById('transportInput');
+      const travelEl = document.getElementById('travelMinutesInput');
+      const noteEl = document.getElementById('noteInput');
+
+      const title = titleEl.value.trim();
+      const rawUrl = urlEl.value;
+      const url = normalizeUrl(rawUrl);
+      const hour = hourEl.value;
+      const minute = minuteEl.value;
+      let eta = "";
+      if (hour && minute) {
+        eta = hour + ':' + minute;
+      }
+      const transport = transportEl.value;
+      const travelMinutesValue = travelEl.value;
+      const travelMinutes = travelMinutesValue === '' ? null : Number(travelMinutesValue);
+      const note = noteEl.value.trim();
+
+      if (!title && !rawUrl.trim()) {
+        alert('少なくとも「行き先の名前」か「URL」のどちらかは入力してください。');
+        return;
+      }
+
+      destinations.push({
+        id: Date.now() + Math.random(),
+        title: title,
+        url: url,
+        eta: eta,
+        transport: transport,
+        travelMinutes: travelMinutes,
+        note: note,
+        isSample: false
+      });
+
+      titleEl.value = '';
+      urlEl.value = '';
+      hourEl.value = '';
+      minuteEl.value = '';
+      transportEl.value = '';
+      travelEl.value = '';
+      noteEl.value = '';
+
+      renderList();
+      clearShareLinksIfAny();
+    }
+
+    function moveDestination(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= destinations.length) return;
+      const tmp = destinations[index];
+      destinations[index] = destinations[newIndex];
+      destinations[newIndex] = tmp;
+      renderList();
+      clearShareLinksIfAny();
+    }
+
+    function deleteDestination(index) {
+      if (!confirm('この行き先を削除しますか？')) return;
+      destinations.splice(index, 1);
+      renderList();
+      clearShareLinksIfAny();
+    }
+
+    function renderList() {
+      const ul = document.getElementById('destList');
+      ul.innerHTML = '';
+      for (let i = 0; i < destinations.length; i++) {
+        const d = destinations[i];
+        const li = document.createElement('li');
+        li.className = 'dest-item';
+
+        const main = document.createElement('div');
+        main.className = 'dest-main';
+
+        const title = document.createElement('div');
+        title.className = 'dest-title';
+        title.textContent = (i + 1) + '. ' + (d.title || '(タイトルなし)');
+        if (d.isSample) {
+          title.style.opacity = 0.8;
+          const badge = document.createElement('span');
+          badge.textContent = '（サンプル）';
+          badge.style.fontSize = '0.75rem';
+          badge.style.marginLeft = '4px';
+          badge.style.color = '#9ca3af';
+          title.appendChild(badge);
+        }
+        main.appendChild(title);
+
+        if (d.url) {
+          const a = document.createElement('a');
+          a.href = d.url;
+          a.textContent = d.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.className = 'dest-url';
+          main.appendChild(a);
+        }
+
+        const metaLines = [];
+
+        if (d.eta) {
+          metaLines.push('到着予定：' + d.eta);
+        }
+        if (d.transport) {
+          metaLines.push('移動手段：' + (transportIcons[d.transport] || d.transport));
+        }
+        if (d.travelMinutes != null && !isNaN(d.travelMinutes)) {
+          metaLines.push('前の地点からの移動時間：約 ' + d.travelMinutes + ' 分');
+        }
+
+        if (metaLines.length > 0) {
+          const meta = document.createElement('div');
+          meta.className = 'dest-meta';
+          meta.textContent = metaLines.join(' ｜ ');
+          main.appendChild(meta);
+        }
+
+        if (d.note) {
+          const note = document.createElement('div');
+          note.className = 'dest-meta';
+          note.textContent = 'メモ：' + d.note;
+          main.appendChild(note);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'dest-actions';
+
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '↑';
+        upBtn.className = 'small-btn btn-secondary';
+        upBtn.onclick = (function(idx){ return function(){ moveDestination(idx, -1); }; })(i);
+        if (i === 0) {
+          upBtn.disabled = true;
+        }
+        actions.appendChild(upBtn);
+
+        const downBtn = document.createElement('button');
+        downBtn.textContent = '↓';
+        downBtn.className = 'small-btn btn-secondary';
+        downBtn.onclick = (function(idx){ return function(){ moveDestination(idx, 1); }; })(i);
+        if (i === destinations.length - 1) {
+          downBtn.disabled = true;
+        }
+        actions.appendChild(downBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '削除';
+        delBtn.className = 'small-btn btn-secondary';
+        delBtn.onclick = (function(idx){ return function(){ deleteDestination(idx); }; })(i);
+        actions.appendChild(delBtn);
+
+        li.appendChild(main);
+        li.appendChild(actions);
+        ul.appendChild(li);
+      }
+
+      // 合計移動時間の表示
+      const totalTimeElem = document.getElementById('totalTime');
+      let totalMinutes = 0;
+      for (let i = 0; i < destinations.length; i++) {
+        const d = destinations[i];
+        if (d.travelMinutes != null && !isNaN(d.travelMinutes)) {
+          totalMinutes += d.travelMinutes;
+        }
+      }
+      if (totalMinutes > 0) {
+        const hours = (totalMinutes / 60).toFixed(1);
+        totalTimeElem.textContent = '総移動時間：およそ ' + totalMinutes + ' 分（約 ' + hours + ' 時間）';
+      } else {
+        totalTimeElem.textContent = '';
+      }
+    }
+
+    function getCurrentPlanData() {
+      syncTripTitle();
+      const realDestinations = [];
+      for (let i = 0; i < destinations.length; i++) {
+        if (!destinations[i].isSample) realDestinations.push(destinations[i]);
+      }
+      return {
+        title: tripTitle,
+        destinations: realDestinations
+      };
+    }
+
+    // どこでも再現できる長い共有リンク
+    function generateShareLink() {
+      const data = getCurrentPlanData();
+      if (!data.destinations.length) {
+        alert('サンプルではなく、実際の行き先を1つ以上追加してください。');
+        return;
+      }
+
+      const json = JSON.stringify(data);
+      const b64 = btoa(encodeURIComponent(json));
+
+      const base = window.location.href.split('?')[0].split('#')[0];
+      const url = base + '?plan=' + b64;
+
+      const container = document.getElementById('shareLink');
+      container.textContent = url + '（コピーしました）';
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).catch(function() {
+          container.textContent = url + '（コピーに失敗しました。手動でコピーしてください）';
+        });
+      }
+    }
+
+    // このブラウザ限定の短縮リンク
+    function generateShortLocalLink() {
+      const data = getCurrentPlanData();
+      if (!data.destinations.length) {
+        alert('サンプルではなく、実際の行き先を1つ以上追加してください。');
+        return;
+      }
+
+      let stored = {};
+      try {
+        stored = JSON.parse(localStorage.getItem('tripPlans') || '{}');
+      } catch (e) {
+        stored = {};
+      }
+
+      const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      stored[id] = data;
+
+      try {
+        localStorage.setItem('tripPlans', JSON.stringify(stored));
+      } catch (e) {
+        alert('ブラウザの保存容量の制限により、短縮リンクを保存できませんでした。');
+        return;
+      }
+
+      const base = window.location.href.split('?')[0].split('#')[0];
+      const url = base + '#p=' + id;
+
+      const container = document.getElementById('shortLink');
+      container.textContent = url + '（コピーしました）';
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).catch(function() {
+          container.textContent = url + '（コピーに失敗しました。手動でコピーしてください）';
+        });
+      }
+    }
+
+    // URL or ハッシュに共有データがあれば復元、無ければサンプル
+    function loadFromUrlOrHash() {
+      const params = new URLSearchParams(location.search);
+      const dataParam = params.get('plan');
+
+      if (dataParam) {
+        try {
+          const json = JSON.parse(decodeURIComponent(atob(dataParam)));
+          if (Array.isArray(json)) {
+            destinations = json;
+            tripTitle = '';
+          } else if (json && Array.isArray(json.destinations)) {
+            destinations = json.destinations;
+            tripTitle = json.title || '';
+          }
+          const titleInput = document.getElementById('tripTitleInput');
+          titleInput.value = tripTitle;
+          renderList();
+          return;
+        } catch (e) {
+          console.error('共有データ(plan)の読み込みに失敗しました', e);
+        }
+      }
+
+      const hash = location.hash.replace(/^#/, '');
+      if (hash) {
+        const hashParams = new URLSearchParams(hash);
+        const pid = hashParams.get('p');
+        if (pid) {
+          try {
+            const stored = JSON.parse(localStorage.getItem('tripPlans') || '{}');
+            const plan = stored[pid];
+            if (plan && Array.isArray(plan.destinations)) {
+              destinations = plan.destinations;
+              tripTitle = plan.title || '';
+              const titleInput = document.getElementById('tripTitleInput');
+              titleInput.value = tripTitle;
+              renderList();
+              return;
+            }
+          } catch (e) {
+            console.error('短縮リンクデータの読み込みに失敗しました', e);
+          }
+        }
+      }
+
+      // 何も読み込めなかった＝初期表示なのでサンプルを使う
+      destinations = [];
+      for (let i = 0; i < sampleDestinations.length; i++) {
+        const src = sampleDestinations[i];
+        destinations.push({
+          id: src.id,
+          title: src.title,
+          url: src.url,
+          eta: src.eta,
+          transport: src.transport,
+          travelMinutes: src.travelMinutes,
+          note: src.note,
+          isSample: src.isSample
+        });
+      }
+      tripTitle = sampleTripTitle;
+      const titleInput = document.getElementById('tripTitleInput');
+      titleInput.value = tripTitle;
+      renderList();
+    }
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', function () {
+      buildEtaSelects();
+      const titleInput = document.getElementById('tripTitleInput');
+      titleInput.addEventListener('input', syncTripTitle);
+      loadFromUrlOrHash();
+    });
+  </script>
+</body>
+</html>
